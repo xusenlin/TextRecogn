@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile,File
+from fastapi.middleware.cors import CORSMiddleware
 from utils import *
 import uvicorn
 from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
@@ -24,6 +25,15 @@ def setup_global_variables():
     tokenizer = AutoTokenizer.from_pretrained(model_path)
 
 app=FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins="*",
+    allow_credentials=True,
+    allow_methods=["POST", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition"]  # 暴露文件下载所需的头部
+)
 
 @app.post("/ai_check")
 async def ai_check(file: UploadFile=File(...)):
