@@ -15,6 +15,8 @@ import io
 import base64
 import torch
 import os
+from fastapi.responses import StreamingResponse
+from io import BytesIO
 
 DOCX_OUTPUT_DIR="."
 
@@ -108,7 +110,7 @@ async def aigc_check(file: UploadFile,device,model,tokenizer):
 
     # 创建一个新的Word文档
     doc_output = Document()
-    output_file_path = DOCX_OUTPUT_DIR + "/" + "AI学习通_AIGC检测报告" + ".docx"
+    output_file_path = DOCX_OUTPUT_DIR + "/" + "AIGC检测报告" + ".docx"
     total_words=0
     slight_ai_words=0
     mediate_ai_words=0
@@ -398,10 +400,10 @@ async def aigc_check(file: UploadFile,device,model,tokenizer):
     # 再把表格1移动到标题后
     move_table_after(table3, doc_output.paragraphs[0])
 
-    doc_output.paragraphs[0].insert_paragraph_before()
-    run=doc_output.paragraphs[0].add_run()
-    run.add_picture('static/dragonos.jpg', width=Inches(5.00), height=Inches(2.655))
-    doc_output.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    # doc_output.paragraphs[0].insert_paragraph_before()
+    # run=doc_output.paragraphs[0].add_run()
+    # run.add_picture('static/dragonos.jpg', width=Inches(5.00), height=Inches(2.655))
+    # doc_output.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
     # 将标题插入开头
     doc_output.paragraphs[1].insert_paragraph_before("AIGC检测报告")
@@ -413,25 +415,15 @@ async def aigc_check(file: UploadFile,device,model,tokenizer):
     # 设置字体大小为三号字体（16磅）
     run.font.size = Pt(20)
 
-    # # 在页眉中插入图片
-    # header_section = doc_output.sections[0].header
-    # header_paragraph = header_section.paragraphs[0]
-    # run = header_paragraph.add_run()
-    # run.add_picture('first_page.png',width=Inches(4.96), height=Inches(0.8))
-    # # 设置页眉居中对齐
-    # header_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-
-    # 在末尾增加一段
-    last_paragraph = doc_output.add_paragraph()
-
-    # 在该段落中插入图片
-    run = last_paragraph.add_run()
-    run.add_picture('static/dragonos.jpg', width=Inches(5.00), height=Inches(2.655))
-
-    last_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-
-    doc_output.save(output_file_path)
-
-    with open(output_file_path, "rb") as f:
-        return base64.b64encode(f.read()).decode()
+    # 创建内存中的文件流
+    byte_io = BytesIO()
+    doc_output.save(byte_io)
+    byte_io.seek(0)  # 将指针移回文件开头
+    
+    # 返回文件流响应
+    return StreamingResponse(
+        content=byte_io,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": "attachment; filename=AIGCAuditReport.docx"}
+    )
 
